@@ -416,3 +416,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Ignore vim swap files
+.*.sw*
+
+# Ignore helm chart repo
+helm-charts

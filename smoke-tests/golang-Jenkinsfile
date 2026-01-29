@@ -1,0 +1,78 @@
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'golang'
+        }
+    }
+    
+    stages {
+        stage('Go Version') {
+            steps {
+                container('golang-container') {
+                    sh '''
+                        echo "=== Go Information ==="
+                        go version
+                    '''
+                }
+            }
+        }
+        
+        stage('Go Environment') {
+            steps {
+                container('golang-container') {
+                    sh '''
+                        echo "=== Go Environment ==="
+                        go env
+                    '''
+                }
+            }
+        }
+        
+        stage('Simple Go Build') {
+            steps {
+                container('golang-container') {
+                    sh '''
+                        echo "=== Creating Simple Go Program ==="
+                        mkdir -p /tmp/gotest
+                        cd /tmp/gotest
+                        
+                        cat > main.go << 'EOF'
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello from Go in Jenkins Kubernetes Pod!")
+}
+EOF
+                        
+                        go build -o hello main.go
+                        echo "=== Running Program ==="
+                        ./hello
+                    '''
+                }
+            }
+        }
+        
+        stage('System Info') {
+            steps {
+                container('golang-container') {
+                    sh '''
+                        echo "=== Operating System ==="
+                        uname -a
+                        
+                        echo "=== Available Tools ==="
+                        which gcc || echo "gcc not available"
+                        which make || echo "make not available"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed'
+        }
+    }
+}

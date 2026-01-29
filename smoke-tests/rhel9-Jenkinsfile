@@ -1,0 +1,52 @@
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'rhel9'
+        }
+    }
+    
+    stages {
+        stage('OS Information') {
+            steps {
+                container('rhel9-container') {
+                    sh '''
+                        echo "=== Operating System ==="
+                        cat /etc/os-release
+                    '''
+                }
+            }
+        }
+        
+        stage('System Info') {
+            steps {
+                container('rhel9-container') {
+                    sh '''
+                        echo "=== Kernel Info ==="
+                        uname -a
+                        
+                        echo "=== Available Disk Space ==="
+                        df -h
+                    '''
+                }
+            }
+        }
+        
+        stage('DNF/YUM Available') {
+            steps {
+                container('rhel9-container') {
+                    sh '''
+                        echo "=== Package Manager ==="
+                        which dnf || which yum
+                        dnf --version || yum --version
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed'
+        }
+    }
+}

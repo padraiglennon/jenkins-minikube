@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: jenkins-pvc-init
+  namespace: jenkins
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      containers:
+      - name: init
+        image: busybox:latest
+        command: 
+          - sh
+          - -c
+          - |
+            echo "Initializing PVC structure..."
+            mkdir -p /mnt/controller
+            mkdir -p /mnt/agent
+            chmod 777 /mnt/controller
+            chmod 777 /mnt/agent
+            echo "PVC initialized with controller and agent folders"
+            ls -la /mnt/
+        volumeMounts:
+        - name: jenkins-storage
+          mountPath: /mnt
+      volumes:
+      - name: jenkins-storage
+        persistentVolumeClaim:
+          claimName: jenkins-pvc
+      restartPolicy: Never

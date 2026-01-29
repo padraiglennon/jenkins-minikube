@@ -1,0 +1,87 @@
+pipeline {
+    agent {
+        kubernetes {
+            inheritFrom 'python-3.13'
+        }
+    }
+    
+    stages {
+        stage('Python Version') {
+            steps {
+                container('python-container') {
+                    sh '''
+                        echo "=== Python Information ==="
+                        python --version
+                        python -c "import sys; print('Python executable:', sys.executable)"
+                    '''
+                }
+            }
+        }
+        
+        stage('Python Environment') {
+            steps {
+                container('python-container') {
+                    sh '''
+                        echo "=== Python Path ==="
+                        python -c "import sys; print('\\n'.join(sys.path))"
+                    '''
+                }
+            }
+        }
+        
+        stage('Simple Python Script') {
+            steps {
+                container('python-container') {
+                    sh '''
+                        echo "=== Creating and Running Python Program ==="
+                        python << 'EOF'
+import sys
+import platform
+
+print("Hello from Python 3.13 in Jenkins Kubernetes Pod!")
+print(f"Python Version: {platform.python_version()}")
+print(f"Platform: {platform.platform()}")
+print(f"Architecture: {platform.machine()}")
+
+# Simple calculation
+result = sum([i**2 for i in range(1, 11)])
+print(f"Sum of squares 1-10: {result}")
+EOF
+                    '''
+                }
+            }
+        }
+        
+        stage('Installed Packages') {
+            steps {
+                container('python-container') {
+                    sh '''
+                        echo "=== Python Packages ==="
+                        pip list || python -m pip list
+                    '''
+                }
+            }
+        }
+        
+        stage('System Info') {
+            steps {
+                container('python-container') {
+                    sh '''
+                        echo "=== Operating System ==="
+                        uname -a
+                        
+                        echo "=== Available Tools ==="
+                        which gcc || echo "gcc not available"
+                        which git || echo "git not available"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed'
+        }
+    }
+}

@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smoke-tests-init-scripts
+  namespace: jenkins
+data:
+  create-smoke-test-jobs.groovy: |
+    import jenkins.model.Jenkins
+    import com.cloudbees.hudson.plugins.folder.Folder
+    import org.jenkinsci.plugins.workflow.job.WorkflowJob
+    import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition
+
+    def jenkins = Jenkins.getInstance()
+    
+    // Create the smoke-tests folder if it doesn't exist
+    def folderName = "smoke-tests"
+    def smokeTestsFolder = jenkins.getItem(folderName)
+    
+    if (smokeTestsFolder == null) {
+      println("Creating '${folderName}' folder...")
+      smokeTestsFolder = jenkins.createProject(Folder.class, folderName)
+      smokeTestsFolder.setDescription("Smoke tests for custom pod templates")
+      jenkins.putItem(smokeTestsFolder)
+      println("Folder '${folderName}' created successfully")
+    } else {
+      println("Folder '${folderName}' already exists")
+    }
+
+    def jobConfigs = [
+      [
+        name: "rhel9-smoke-test",
+        description: "Smoke test for RHEL 9.5 UBI pod template",
+        jenkinsfileKey: "rhel9-Jenkinsfile"
+      ],
+      [
+        name: "golang-smoke-test",
+        description: "Smoke test for Golang pod template",
+        jenkinsfileKey: "golang-Jenkinsfile"
+      ],
+      [
+        name: "python-3.13-smoke-test",
+        description: "Smoke test for Python 3.13 pod template",
+        jenkinsfileKey: "python-3.13-Jenkinsfile"
+      ]
+    ]
+
+    jobConfigs.each { jobConfig ->
+      def jobName = jobConfig.name
+      def jobDescription = jobConfig.description
+      
+      // Read the Jenkinsfile content from the mounted ConfigMap
+      def jenkinsfilePath = "/var/jenkins_home/smoke-tests-jenkinsfiles/${jobConfig.jenkinsfileKey}"
+      def jenkinsfileContent = new File(jenkinsfilePath).text
+      
+      def existingJob = smokeTestsFolder.getItem(jobName)
+      if (existingJob != null) {
+        println("Job '${jobName}' already exists. Skipping creation.")
+        return
+      }
+
+      try {
+        def job = smokeTestsFolder.createProject(WorkflowJob.class, jobName)
+        job.setDescription(jobDescription)
+        job.setDefinition(new CpsFlowDefinition(jenkinsfileContent, true))
+        println("Created job '${jobName}' in '${folderName}' folder")
+      } catch (Exception e) {
+        println("Error creating job '${jobName}': ${e.message}")
+        e.printStackTrace()
+      }
+    }
+
+    jenkins.save()
+    println("Smoke test jobs initialization completed")

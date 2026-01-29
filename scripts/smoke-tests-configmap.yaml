@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smoke-tests-jenkinsfiles
+  namespace: jenkins
+data:
+  rhel9-Jenkinsfile: |
+    pipeline {
+      agent { kubernetes { inheritFrom 'rhel9' } }
+      stages {
+        stage('OS Info') {
+          steps {
+            container('rhel9-container') {
+              sh 'cat /etc/os-release && uname -a && df -h'
+            }
+          }
+        }
+      }
+      post { always { echo 'Complete' } }
+    }
+
+  golang-Jenkinsfile: |
+    pipeline {
+      agent { kubernetes { inheritFrom 'golang' } }
+      stages {
+        stage('Go Test') {
+          steps {
+            container('golang-container') {
+              sh 'go version && go env GOROOT'
+            }
+          }
+        }
+      }
+      post { always { echo 'Complete' } }
+    }
+
+  python-3.13-Jenkinsfile: |
+    pipeline {
+      agent { kubernetes { inheritFrom 'python-3.13' } }
+      stages {
+        stage('Python Test') {
+          steps {
+            container('python-container') {
+              sh 'python --version && python -c "print(sum(range(1,11)))"'
+            }
+          }
+        }
+      }
+      post { always { echo 'Complete' } }
+    }
